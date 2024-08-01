@@ -387,7 +387,7 @@ class AffordanceAnalyzer:
     def getWebcamPhoto(self, imagename='photo.jpg'):
         self.take_photo(imagename)
 
-    def image_estimate(self, imagename='photo.jpg'):
+    def image_estimate(self, imagename=r'/content/photo.jpg'):
         pil_img = pil_im.open(imagename)
         crops = self.objectDetector.detect_objects(imagename)
         TINT_COLOR = (0, 0, 0)  # Black
