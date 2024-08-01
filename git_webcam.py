@@ -108,6 +108,11 @@ class AffordanceAnalyzer:
 
         self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'
 
+        self.download_files()
+        w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
+        w_max = np.max(w_matr)
+        self.W_matr = torch.tensor(w_matr/w_max)
+
         self.base_list = dict()
         self.base_point_vecs = dict()
         self.state_dict = dict()
@@ -323,9 +328,6 @@ class AffordanceAnalyzer:
         res_tens = re_tens[:8000,:]
         name_list = nam_list[:8000]
 
-        w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
-        w_max = np.max(w_matr)
-        self.W_matr = torch.tensor(w_matr/w_max)
         #print(res_tens.shape)
         #taking transpose of the state tensor to make a column matrix
         # all results are looked up and affordance classes are listed
