@@ -124,10 +124,7 @@ class AffordanceAnalyzer:
 
 
     def download_files(self):
-        try:
-            os.mkdir(r'/content/%s'%self.model_name)
-        except:
-            pass
+        print('downloading files')
         if self.model_name == 'resnet18':
             gdown.download(id = '10rQgt720xNfqwaKkAZC8-DoHyqPVjHAQ')
             gdown.download(id = '10rsMnDM6LAd1DdOsuRAwoJ-oz8wasymL')
