@@ -33,7 +33,7 @@ def download_files(model_name='resnet18'):
         gdown.download(id = '10mlW-u062prfC-R7RxlQKPuf-aSN6cgM')
         gdown.download(id = '1VYW0W9mqjzyrBRPlpCbXlw3KZ6pWGZgd')
     
-    elif self.model_name == 'regnet_y':
+    elif model_name == 'regnet_y':
         gdown.download(id = '1-xut_M1T2hpTsGFcKoc8LGsSSVDrwske')
         gdown.download(id = '103CFnryrTUFSZFhmLL6-tP9ui5vPPU4-')
         gdown.download(id = '1-s_Kr3O7uP0KTL91Ss_V8Fyho6s6OWG6')
