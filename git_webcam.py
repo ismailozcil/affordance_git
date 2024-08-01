@@ -25,8 +25,9 @@ from base64 import b64decode
 from IPython.display import Image
 
 # @title get image
-def download_files(model_name='resnet18'):
+def download_files():
     print('downloading files')
+    model_name='resnet18'
     if model_name == 'resnet18':
         gdown.download(id = '10rQgt720xNfqwaKkAZC8-DoHyqPVjHAQ')
         gdown.download(id = '10rsMnDM6LAd1DdOsuRAwoJ-oz8wasymL')
