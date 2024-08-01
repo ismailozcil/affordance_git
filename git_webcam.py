@@ -109,7 +109,6 @@ class AffordanceAnalyzer:
 
         self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'
 
-        self.download_files()
 
         w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
         w_max = np.max(w_matr)
@@ -123,7 +122,6 @@ class AffordanceAnalyzer:
         self.afford_dict = dict()
         self.afford_dict_T = dict()
 
-        self.get_subspace_bases()
 
     def download_files(self):
         try:
