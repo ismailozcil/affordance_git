@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image as pil_im
-from PIL import ImageFont, ImageDraw, ImageEnhance
+from PIL import ImageFont, ImageDraw, ImageEnhance, ImageFile
 import  scipy.io
 import gdown
 
@@ -23,6 +23,9 @@ from IPython.display import display, Javascript
 from google.colab.output import eval_js
 from base64 import b64decode
 from IPython.display import Image
+
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # @title get image
 class SquarePad:
