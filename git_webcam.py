@@ -119,6 +119,44 @@ class AffordanceAnalyzer:
         self.afford_labellist = list()
         self.afford_dict = dict()
         self.afford_dict_T = dict()
+
+    def take_photo(self, filename='photo.jpg', quality=0.8):
+        js = Javascript('''
+            async function takePhoto(quality) {
+                const div = document.createElement('div');
+                const capture = document.createElement('button');
+                capture.textContent = 'Capture';
+                div.appendChild(capture);
+
+                const video = document.createElement('video');
+                video.style.display = 'block';
+                const stream = await navigator.mediaDevices.getUserMedia({video: true});
+
+                document.body.appendChild(div);
+                div.appendChild(video);
+                video.srcObject = stream;
+                await video.play();
+
+                // Resize the output to fit the video element.
+                google.colab.output.setIframeHeight(document.documentElement.scrollHeight, true);
+
+                // Wait for Capture to be clicked.
+                await new Promise((resolve) => capture.onclick = resolve);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                stream.getVideoTracks()[0].stop();
+                div.remove();
+                return canvas.toDataURL('image/jpeg', quality);
+            }
+            ''')
+        display(js)
+        data = eval_js('takePhoto({})'.format(quality))
+        binary = b64decode(data.split(',')[1])
+        with open(filename, 'wb') as f:
+            f.write(binary)
         
     def get_tens(self):
         # state vectors obtained from Resnet are loaded from previously saved file
@@ -411,7 +449,9 @@ class AffordanceAnalyzer:
                 print('calculated w results  are:', w_tot_results )
                 print('----------------------------------------')
                 box_coords = [x.item() for x in crop['box']]
-                source_img = pil_im.open(imagename).convert("RGBA")
+                cv2_img = cv2.imread( imagename)
+                cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
+                source_img = pil_im.fromarray(cv2_img).convert("RGBA")
                 overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
                 draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
                 draw.rectangle(((box_coords[0], box_coords[1]), (box_coords[2], box_coords[3])), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
