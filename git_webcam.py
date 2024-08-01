@@ -90,6 +90,7 @@ class AffordanceAnalyzer:
         self.dataset_name = dataset_name
         self.img_size = img_size
         self.device = device
+        self.download_files()
         self.nr_of_bases = nr_of_bases
         self.auto_threshold = auto_threshold
         self.plot_graph = plot_graph
@@ -108,7 +109,7 @@ class AffordanceAnalyzer:
 
         self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'
 
-        self.download_files()
+        
         w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
         w_max = np.max(w_matr)
         self.W_matr = torch.tensor(w_matr/w_max)
