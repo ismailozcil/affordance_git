@@ -348,7 +348,7 @@ class AffordanceAnalyzer:
         self.take_photo(imagename)
 
     def image_estimate(self, imagename='photo.jpg'):
-        img = cv2.imread(os.join(r'/content', iamgename))
+        img = cv2.imread(os.path.join(r'/content', iamgename))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         pil_img = pil_im.fromarray(img)
         crops = self.objectDetector.detect_objects(pil_img)
