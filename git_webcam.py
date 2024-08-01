@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image as pil_im
 from PIL import ImageFont, ImageDraw, ImageEnhance
-%matplotlib inline
 import  scipy.io
 import gdown
 
