@@ -158,7 +158,7 @@ class AffordanceAnalyzer:
         binary = b64decode(data.split(',')[1])
         with open(filename, 'wb') as f:
             f.write(binary)
-            f.close()
+        f.close()
 
     def get_tens(self):
         # state vectors obtained from Resnet are loaded from previously saved file
