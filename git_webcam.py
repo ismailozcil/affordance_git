@@ -28,6 +28,7 @@ from IPython.display import Image
 class get_webcam:
     def __init__(self, image_name= 'photo.jpg', quality= 0.8):
         self.image_name = image_name
+        self.quality =quality
         self.take_photo()
         
     def capture_webcam(self):
