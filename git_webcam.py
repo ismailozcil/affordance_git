@@ -92,7 +92,6 @@ class AffordanceAnalyzer:
             self.device = torch.device('cuda:0')
         else:
             self.device = torch.device('cpu')
-        self.device = device
         self.nr_of_bases = nr_of_bases
         self.auto_threshold = auto_threshold
         self.plot_graph = plot_graph
