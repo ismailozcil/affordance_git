@@ -25,7 +25,48 @@ from base64 import b64decode
 from IPython.display import Image
 
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+class get_pict:
+    def __init__(self, image_name= 'photo.jpg', quality= 0.8):
+        self.image_name = image_name
+        
+    def take_photo(self):
+        js = Javascript('''
+            async function takePhoto(quality) {
+                const div = document.createElement('div');
+                const capture = document.createElement('button');
+                capture.textContent = 'Capture';
+                div.appendChild(capture);
+
+                const video = document.createElement('video');
+                video.style.display = 'block';
+                const stream = await navigator.mediaDevices.getUserMedia({video: true});
+
+                document.body.appendChild(div);
+                div.appendChild(video);
+                video.srcObject = stream;
+                await video.play();
+
+                // Resize the output to fit the video element.
+                google.colab.output.setIframeHeight(document.documentElement.scrollHeight, true);
+
+                // Wait for Capture to be clicked.
+                await new Promise((resolve) => capture.onclick = resolve);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                stream.getVideoTracks()[0].stop();
+                div.remove();
+                return canvas.toDataURL('image/jpeg', quality);
+            }
+            ''')
+        display(js)
+        data = eval_js('takePhoto({})'.format(self.quality))
+        binary = b64decode(data.split(',')[1])
+        with open(self.image_name, 'wb') as f:
+            f.write(binary)
+
 
 # @title get image
 class SquarePad:
@@ -120,46 +161,7 @@ class AffordanceAnalyzer:
         self.afford_labellist = list()
         self.afford_dict = dict()
         self.afford_dict_T = dict()
-
-    def take_photo(self, filename='photo.jpg', quality=0.8):
-        js = Javascript('''
-            async function takePhoto(quality) {
-                const div = document.createElement('div');
-                const capture = document.createElement('button');
-                capture.textContent = 'Capture';
-                div.appendChild(capture);
-
-                const video = document.createElement('video');
-                video.style.display = 'block';
-                const stream = await navigator.mediaDevices.getUserMedia({video: true});
-
-                document.body.appendChild(div);
-                div.appendChild(video);
-                video.srcObject = stream;
-                await video.play();
-
-                // Resize the output to fit the video element.
-                google.colab.output.setIframeHeight(document.documentElement.scrollHeight, true);
-
-                // Wait for Capture to be clicked.
-                await new Promise((resolve) => capture.onclick = resolve);
-
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                stream.getVideoTracks()[0].stop();
-                div.remove();
-                return canvas.toDataURL('image/jpeg', quality);
-            }
-            ''')
-        display(js)
-        data = eval_js('takePhoto({})'.format(quality))
-        binary = b64decode(data.split(',')[1])
-        with open(filename, 'wb') as f:
-            f.write(binary)
-        f.close()
-
+        
     def get_tens(self):
         # state vectors obtained from Resnet are loaded from previously saved file
         st_tns = torch.load(r'/content/%s_with_%s_%dnetworkout.pt'%(self.model_name, self.dataset_name, self.img_size))
