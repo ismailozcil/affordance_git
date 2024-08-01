@@ -90,6 +90,7 @@ class AffordanceAnalyzer:
         self.dataset_name = dataset_name
         self.img_size = img_size
         self.device = device
+        print('call download files')
         self.download_files()
         self.nr_of_bases = nr_of_bases
         self.auto_threshold = auto_threshold
@@ -107,9 +108,7 @@ class AffordanceAnalyzer:
                     'rollable', 'dry', 'liquid_containment', 'pourable', 'grip', 'absorb',
                     'cut', 'stapling', 'illumination']
 
-        self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'
-
-        
+        self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'    
         w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
         w_max = np.max(w_matr)
         self.W_matr = torch.tensor(w_matr/w_max)
@@ -136,7 +135,6 @@ class AffordanceAnalyzer:
             gdown.download(id = '103CFnryrTUFSZFhmLL6-tP9ui5vPPU4-')
             gdown.download(id = '1-s_Kr3O7uP0KTL91Ss_V8Fyho6s6OWG6')
             gdown.download(id = '1GvxUUPwOaT_fLew4N0z5nAr3GqMydGhw')  
-        return 0
 
     def take_photo(self, filename='photo.jpg', quality=0.8):
         js = Javascript('''
