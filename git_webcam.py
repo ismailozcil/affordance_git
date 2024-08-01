@@ -25,11 +25,12 @@ from base64 import b64decode
 from IPython.display import Image
 
 
-class get_pict:
+class get_webcam:
     def __init__(self, image_name= 'photo.jpg', quality= 0.8):
         self.image_name = image_name
+        self.take_photo()
         
-    def take_photo(self):
+    def capture_webcam(self):
         js = Javascript('''
             async function takePhoto(quality) {
                 const div = document.createElement('div');
