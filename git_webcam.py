@@ -86,6 +86,7 @@ class ObjectDetectorYOLO:
 
 class AffordanceAnalyzer:
     def __init__(self, model_name='resnet18', dataset_name='RGBDAffordance', img_size=224, device=torch.device('cpu'), nr_of_bases=20, auto_threshold = 0.8, plot_graph=False):
+        print('initializing ')
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.img_size = img_size
