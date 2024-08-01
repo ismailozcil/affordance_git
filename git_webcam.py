@@ -25,7 +25,7 @@ from base64 import b64decode
 from IPython.display import Image
 
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+#ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # @title get image
 class SquarePad:
