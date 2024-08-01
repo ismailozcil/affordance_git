@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image as pil_im
 from PIL import ImageFont, ImageDraw, ImageEnhance, ImageFile
+import cv2
+# importing just because PIL refuses to read its own saved image 
 import  scipy.io
 import gdown
 
@@ -346,8 +348,10 @@ class AffordanceAnalyzer:
         self.take_photo(imagename)
 
     def image_estimate(self, imagename='photo.jpg'):
-        pil_img = pil_im.open(os.join(r'/content',imagename))
-        crops = self.objectDetector.detect_objects(imagename)
+        img = cv2.imread(os.join(r'/content', iamgename))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pil_img = pil_im.fromarray(img)
+        crops = self.objectDetector.detect_objects(pil_img)
         TINT_COLOR = (0, 0, 0)  # Black
         TRANSPARENCY = .55  # Degree of transparency, 0-100%
         OPACITY = int(255 * TRANSPARENCY)
