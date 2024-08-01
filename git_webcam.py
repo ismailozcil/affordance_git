@@ -338,7 +338,7 @@ class AffordanceAnalyzer:
             indices = torch.nonzero(torch.sum( (res_tens == i).int() , axis = 1))
             non_indices = torch.nonzero(torch.sum( (res_tens == i).int() , axis = 1)==0)
             afford_states = state_tens[:, indices.squeeze()].to(self.device)
-            non_afford_states = state_tens[:, non_indices.squeeze()]#.to(self.device)
+            non_afford_states = state_tens[:, non_indices.squeeze()].to(self.device)
             self.state_dict[i] = afford_states
 
             mean_val = torch.mean(afford_states,1)
