@@ -84,14 +84,11 @@ class ObjectDetectorYOLO:
 
 
 class AffordanceAnalyzer:
-    def __init__(self, model_name='resnet18', dataset_name='RGBDAffordance', img_size=224, devc='cpu', nr_of_bases=20, auto_threshold = 0.8, plot_graph=False):
+    def __init__(self, model_name='resnet18', dataset_name='RGBDAffordance', img_size=224, device= torch.device('cpu'), nr_of_bases=20, auto_threshold = 0.8, plot_graph=False):
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.img_size = img_size
-        if devc == 'gpu':
-            self.device = torch.device('cuda:0')
-        else:
-            self.device = torch.device('cpu')
+        self.device = device
         self.nr_of_bases = nr_of_bases
         self.auto_threshold = auto_threshold
         self.plot_graph = plot_graph
