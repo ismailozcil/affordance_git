@@ -102,9 +102,9 @@ class AffordanceAnalyzer:
         self.affordance_names_T = ['Grasp', 'Wrap Grasp', 'Contain', 'Open', 'Tip-push', 'Display',
                     'Roll', 'Dry', 'Liquid contain', 'Pour', 'Grip', 'Absorb',
                     'Cut', 'Staple', 'Illuminate']
-        self.affordance_names = ['grasp', 'wrap grasp', 'containment', 'openable', 'tip-push', 'display',
-                    'rollable', 'dry', 'liquid_containment', 'pourable', 'grip', 'absorb',
-                    'cut', 'stapling', 'illumination']
+        self.affordance_names = ['grasp', 'wrap grasp', 'contain', 'open', 'tip-push', 'display',
+                    'roll', 'dry', 'liquid_contain', 'pour', 'grip', 'absorb',
+                    'cut', 'staple', 'illuminate']
 
         self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'    
         w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
