@@ -387,6 +387,7 @@ class AffordanceAnalyzer:
         self.take_photo(imagename)
 
     def image_estimate(self, imagename='photo.jpg'):
+        pil_img = pil_im.open(imagename)
         crops = self.objectDetector.detect_objects(imagename)
         TINT_COLOR = (0, 0, 0)  # Black
         TRANSPARENCY = .55  # Degree of transparency, 0-100%
