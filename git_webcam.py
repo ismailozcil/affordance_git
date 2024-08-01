@@ -137,7 +137,8 @@ class AffordanceAnalyzer:
             gdown.download(id = '1-xut_M1T2hpTsGFcKoc8LGsSSVDrwske')
             gdown.download(id = '103CFnryrTUFSZFhmLL6-tP9ui5vPPU4-')
             gdown.download(id = '1-s_Kr3O7uP0KTL91Ss_V8Fyho6s6OWG6')
-            gdown.download(id = '1GvxUUPwOaT_fLew4N0z5nAr3GqMydGhw')      
+            gdown.download(id = '1GvxUUPwOaT_fLew4N0z5nAr3GqMydGhw')  
+        return 0
 
     def take_photo(self, filename='photo.jpg', quality=0.8):
         js = Javascript('''
@@ -395,6 +396,7 @@ class AffordanceAnalyzer:
             #plt.legend()
             plt.title('ROC Curves of Affordance Groups for %s'%self.model_name_T)
             plt.savefig('ROC_Curve_%s.png'%self.model_name_T.replace("/", ""))
+        return 0
 
     def load_models(self):
         self.featureExtractor = FeatureExtractorNet()
