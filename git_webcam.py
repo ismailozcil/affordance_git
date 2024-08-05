@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from PIL import Image as pil_im
 from PIL import ImageFont, ImageDraw, ImageEnhance, ImageFile
 import cv2
-# importing just because PIL refuses to read its own saved image 
+# importing just because PIL refuses to read saved image
 import  scipy.io
 import gdown
 
@@ -20,6 +20,8 @@ import torchvision.models as models
 from torchvision import datasets
 import torchvision.transforms as transforms
 from torchvision.io import read_image
+
+from ultralytics import YOLO
 
 from IPython.display import display, Javascript
 from google.colab.output import eval_js
@@ -84,6 +86,17 @@ class ObjectDetectorYOLO:
         results = self.model(image_path)
         return results.crop(save=False)
 
+class ObjectSegmentorYOLO:
+    def __init__(self, model_name='yolov8m-seg.pt'):
+        self.model_name = model_name
+        self.model = YOLO(self.model_name)
+        self.yolo_classes = list(self.model.names.values())
+        self.classes_ids = [self.yolo_classes.index(clas) for clas in self.yolo_classes]
+
+    def detect_objects(self, image_path):
+        results = self.model(image_path)
+        return results[0]
+
 
 class AffordanceAnalyzer:
     def __init__(self, model_name='resnet18', dataset_name='RGBDAffordance', img_size=224, device= 'cpu', nr_of_bases=20, auto_threshold = 0.8, plot_graph=False):
@@ -111,7 +124,7 @@ class AffordanceAnalyzer:
                     'roll', 'dry', 'liquid_contain', 'pour', 'grip', 'absorb',
                     'cut', 'staple', 'illuminate']
 
-        self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'    
+        self.model_name_T = 'ResNet18' if model_name == 'resnet18' else 'RegNetY'
         w_matr =np.loadtxt(r'/content/W_matr_%s.csv'%self.model_name, delimiter=',')
         w_max = np.max(w_matr)
         self.W_matr = torch.tensor(w_matr/w_max)
@@ -123,6 +136,7 @@ class AffordanceAnalyzer:
         self.afford_labellist = list()
         self.afford_dict = dict()
         self.afford_dict_T = dict()
+        self.softmax = nn.Softmax()
 
     def take_photo(self, filename='photo.jpg', quality=0.8):
         js = Javascript('''
@@ -161,7 +175,7 @@ class AffordanceAnalyzer:
         binary = b64decode(data.split(',')[1])
         with open(filename, 'wb') as f:
             f.write(binary)
-        
+
     def get_tens(self):
         # state vectors obtained from Resnet are loaded from previously saved file
         st_tns = torch.load(r'/content/%s_with_%s_%dnetworkout.pt'%(self.model_name, self.dataset_name, self.img_size))
@@ -214,11 +228,11 @@ class AffordanceAnalyzer:
         dig = torch.diag(torch.matmul(torch.transpose(mtp, 0, 1), mtp))
         salad, ind = torch.sort(dig)
         ind_e = ind[0:nnum]
-        ind_w = ind[1:nnum]
+        #ind_w = ind[1:nnum]
         mn = m[:, ind_e]
         mni = self.matr_zero_mean(mn)
         #mw = m[:, ind_w]
-        #mwi = matr_zero_mean(mw)
+        #mwi = self.matr_zero_mean(mw)
         mtot = torch.concat((mn, vct), 1)
         mtoti = self.matr_zero_mean(mtot)
 
@@ -384,81 +398,148 @@ class AffordanceAnalyzer:
 
     def load_models(self):
         self.featureExtractor = FeatureExtractorNet()
-        self.objectDetector = ObjectDetectorYOLO() 
+        self.objectDetector = ObjectDetectorYOLO()
+        self.segmentator = ObjectSegmentorYOLO()
 
     def getWebcamPhoto(self, imagename='photo.jpg'):
         self.take_photo(imagename)
+    
+    def get_opt_result(self, scores, threshold_Val):
+        score_dict = dict()
+        scores_sorted, scores_indices = torch.sort(scores)
+        w_ordered = [self.afford_dict[self.afford_labellist[x]] for x in scores_indices.tolist()]
+        out_max = torch.max(scores)
+        out_min = torch.min(scores)
+        output_w = (scores - out_min*torch.ones_like(scores))/(out_max-out_min)
+        outp, outi = torch.sort(output_w)
+        range_tens = torch.range(0, len(self.afford_labellist)-1.0)/(len(self.afford_labellist)-1.0)
+        out_optim = torch.square(range_tens-torch.ones_like(range_tens)) + torch.square(outp)
+        optim_sorted, optim_ind_sorted = torch.sort(out_optim)
+        w_results = torch.nonzero(output_w >= outp[optim_ind_sorted[0]]).squeeze()
+        mults = (output_w >= 1.2*outp[optim_ind_sorted[0]]).squeeze()*output_w.squeeze()
+        mults[mults == 0] = -10e10
+        mults = self.softmax(mults)
+        score_dict['mult'] = mults
+        score_dict['optim_result'] = [self.afford_dict[self.afford_labellist[k]] + ' %.3f'%mults[k] for k in w_results.tolist()]
+        return score_dict
+
 
     def image_estimate(self, imagename='photo.jpg'):
         img = cv2.imread( imagename)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         pil_img = pil_im.fromarray(img)
         crops = self.objectDetector.detect_objects(pil_img)
+        result_seg = self.segmentator.detect_objects(imagename)
         TINT_COLOR = (0, 0, 0)  # Black
-        TRANSPARENCY = .55  # Degree of transparency, 0-100%
+        TRANSPARENCY = .25  # Degree of transparency, 0-100%
         OPACITY = int(255 * TRANSPARENCY)
+
+        masks_seg = result_seg.masks.data
+        boxes_seg = result_seg.boxes.data
+        clss_seg = boxes_seg[:, 5]
+        print('Segmented results are (YOLOv8):')
+        for itr in range(len(clss_seg.tolist())):
+            clss_num = clss_seg[itr]
+            if self.segmentator.yolo_classes[int(clss_num.item())] == 'person':
+                pass
+            else:
+                cls_indices = torch.where(clss_seg == clss_num)
+                cls_masks = masks_seg[cls_indices]
+                # scale for visualizing results
+                cls_mask = torch.any(cls_masks, dim=0).int() * 255
+                #cv2.imwrite('%s_segments.jpg'%yolo_classes[int(clss_num)], cls_mask.cpu().numpy())
+                zeros_img = np.zeros_like(result_seg.orig_img)
+                ids = np.where(cls_mask == 255)
+                zeros_img[ids] = result_seg.orig_img[ids]
+                pil_fa = pil_im.fromarray(zeros_img[:,:,::-1])
+                x0, y0, x1, y1 = boxes_seg[itr, :4]
+                width, height = pil_fa.size
+                x0 = int(x0*0.9)
+                y0 = int(y0*0.9)
+                x1 = min(int(x1*1.1), width)
+                y1 = min(int(y1*1.1), height)
+                cropped = pil_fa.crop((x0, y0, x1, y1))
+                crop_t = self.featureExtractor.extract_features(cropped)
+                v1 = crop_t.squeeze(3).squeeze(0).to(self.device)
+
+                prjctns = torch.tensor([(torch.norm(torch.matmul(self.base_list[x], v1-self.base_point_vecs[x]))/torch.norm(v1-self.base_point_vecs[x])).item()-0.85*self.threshold_dict[x] for x in self.afford_labellist])
+                prjctns = torch.abs(prjctns)
+                prj_dict = self.get_opt_result(prjctns, 0.5)
+                
+                ang_la1 = [self.curv_calc(self.state_dict[k], v1, 3,20).item() for k in self.afford_labellist]
+                la1_dict = self.get_opt_result(1/torch.tensor(ang_la1), 1.7)
+
+                w_weighted = torch.matmul(self.W_matr.float(), la1_dict['mult'].unsqueeze(1))+ torch.matmul(self.W_matr.float(), prj_dict['mult'].unsqueeze(1))
+                #output_w = m((1/w_weighted).squeeze())
+                w_weighted = (1.0/w_weighted).squeeze()
+                w_dict = self.get_opt_result(w_weighted, 0.000000000000000001)
+                w_tot_results = w_dict['optim_result']
+                if len(w_tot_results) == 0:
+                    w_tot_results = ['found none']
+                box_coords = boxes_seg[itr, :4].squeeze().tolist()
+                cv2_img = cv2.imread( imagename)
+                cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
+                source_img = pil_im.fromarray(cv2_img).convert("RGBA")
+                overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
+                draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
+                draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
+                print_string = [self.segmentator.yolo_classes[int(clss_num.item())]] + w_tot_results
+                print_string = '\n'.join(print_string)
+                draw.multiline_text((box_coords[0], box_coords[1]), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
+                source_img = pil_im.alpha_composite(source_img, overlay)
+                source_img = source_img.convert("RGB") # Remove alpha for saving in jpg format.
+
+                plt.imshow(cropped)
+                plt.show()
+
+                plt.imshow(source_img)
+                plt.show()
+
+
+        crops = self.objectDetector.detect_objects(pil_img)
+
+        print('Non-Segmented Results are(YOLOv5):')
+
         for crop in crops:
             if 'person' in crop['label']:
                 pass
             else:
+                #since yolo sometimes crops the corners of the objects, lets make crop region 20% bigger
+                x0, y0, x1, y1 = crop['box']
+                width, height = pil_img.size
+                x0 = int(x0*0.9)
+                y0 = int(y0*0.9)
+                x1 = min(int(x1*1.1), width)
+                y1 = min(int(y1*1.1), height)
+                cropped = pil_img.crop((x0, y0, x1, y1))
                 #display(Image(crop))
-                crop_im = pil_im.fromarray(crop['im'][:,:,::-1])
-                crop_t = self.featureExtractor.extract_features(crop_im)
+                #crop_im = pil_im.fromarray(crop['im'][:,:,::-1])
+                crop_t = self.featureExtractor.extract_features(cropped)
                 v1 = crop_t.squeeze(3).squeeze(0).to(self.device)
-                m = nn.Softmax()
-                r = nn.ReLU()
+
                 prjctns = torch.tensor([(torch.norm(torch.matmul(self.base_list[x], v1-self.base_point_vecs[x]))/torch.norm(v1-self.base_point_vecs[x])).item()-0.85*self.threshold_dict[x] for x in self.afford_labellist])
-                nl1 =torch.nonzero(torch.tensor([(torch.norm(torch.matmul(self.base_list[x], v1-self.base_point_vecs[x]))/torch.norm(v1-self.base_point_vecs[x])).item()>self.threshold_dict[x] for x in self.afford_labellist])).squeeze()
-                sssorted, ssindices = torch.sort(prjctns)
-                print('subspace order is :', [self.afford_dict[self.afford_labellist[x]] for x in ssindices.tolist()])
-                r_prjctns = r(prjctns)
-                r_prjctns[r_prjctns == 0] = -10e10
-                output_prjctns = m(r_prjctns)
+                prjctns = torch.abs(prjctns)
+                prj_dict = self.get_opt_result(prjctns, 0.5)
+                
 
-                #print(nl1)
-                nla = np.argsort(-nl1)
-
-                try:
-                    nla = [self.afford_dict[self.afford_labellist[k]] for k in nla.tolist()]
-                except:
-                    nla = ['found none']
+                ang_la1 = [self.curv_calc(self.state_dict[k], v1, 3,20).item() for k in self.afford_labellist]
+                la1_dict = self.get_opt_result(1/torch.tensor(ang_la1), 1.7)
 
 
-                ang_la = [self.curv_calc_auto(self.state_dict[k], v1).item() for k in self.afford_labellist]
-
-                ang_ra = []
-                auto_sorted, auto_indices = torch.sort(torch.tensor(ang_la))
-                print('sorted angle are:', [self.afford_dict[self.afford_labellist[k]] for k in auto_indices.tolist()])
-                ang_ltemp = torch.nan_to_num(torch.tensor(ang_la), nan=0)
-                max_val_temp = torch.max(ang_ltemp)
-                ang_la_tens = torch.nan_to_num(torch.tensor(ang_la), nan=max_val_temp)
-                output_ang = m(1/ang_la_tens)
-                w_weighted = torch.matmul(self.W_matr.float(), output_ang.unsqueeze(1))+ torch.matmul(self.W_matr.float(), output_prjctns.unsqueeze(1))
+                w_weighted = torch.matmul(self.W_matr.float(), la1_dict['mult'].unsqueeze(1))+ torch.matmul(self.W_matr.float(), prj_dict['mult'].unsqueeze(1))
                 #output_w = m((1/w_weighted).squeeze())
-                output_w = (1/w_weighted).squeeze()
-                out_sor, out_in = torch.sort(output_w)
-                w_ordered = [self.afford_dict[self.afford_labellist[x]] for x in out_in.tolist()]
-                print('optimal order is:', w_ordered)
-                out_max = torch.max(output_w)
-                output_w = (len(self.afford_labellist)-1)*output_w/out_max
-                range_tens = torch.range(0, len(self.afford_labellist)-1)
-                out_optim = torch.square(range_tens-torch.ones_like(range_tens)) + torch.square(output_w)
-                optim_sorted, optim_ind_sorted = torch.sort(out_optim)
-                w_results = torch.nonzero(output_w > 1.2*output_w[optim_ind_sorted[0]]).squeeze()
-                try:
-                    w_tot_results = [self.afford_dict[self.afford_labellist[x]] for x in w_results.tolist()]
-                except:
+                w_weighted = (1.0/w_weighted).squeeze()
+                w_dict = self.get_opt_result(w_weighted, 0.000000000000000001)
+                w_tot_results = w_dict['optim_result']
+                if len(w_tot_results) == 0:
                     w_tot_results = ['found none']
-                print('----------------------------------------')
-                print('calculated w results  are:', w_tot_results )
-                print('----------------------------------------')
                 box_coords = [x.item() for x in crop['box']]
                 cv2_img = cv2.imread( imagename)
                 cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
                 source_img = pil_im.fromarray(cv2_img).convert("RGBA")
                 overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
                 draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
-                draw.rectangle(((box_coords[0], box_coords[1]), (box_coords[2], box_coords[3])), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
+                draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
                 print_string = [crop['label']] + w_tot_results
                 print_string = '\n'.join(print_string)
                 draw.multiline_text((box_coords[0], box_coords[1]), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
@@ -467,4 +548,3 @@ class AffordanceAnalyzer:
 
                 plt.imshow(source_img)
                 plt.show()
-
