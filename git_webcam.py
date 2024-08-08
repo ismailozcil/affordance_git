@@ -431,7 +431,7 @@ class AffordanceAnalyzer:
         crops = self.objectDetector.detect_objects(pil_img)
         result_seg = self.segmentator.detect_objects(imagename)
         TINT_COLOR = (0, 0, 0)  # Black
-        TRANSPARENCY = .25  # Degree of transparency, 0-100%
+        TRANSPARENCY = .35  # Degree of transparency, 0-100%
         OPACITY = int(255 * TRANSPARENCY)
 
         masks_seg = result_seg.masks.data
@@ -485,8 +485,8 @@ class AffordanceAnalyzer:
                 draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
                 print_string =  w_tot_results
                 print_string = '\n'.join(print_string)
-                draw.text((box_coords[0], box_coords[1]), 'YOLOv8 est is:' + self.segmentator.yolo_classes[int(clss_num.item())], font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 0, 0, 255))
-                draw.multiline_text((box_coords[0], box_coords[1]+10), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
+                draw.text((box_coords[0], box_coords[1]), 'YOLOv8 est is:' + self.segmentator.yolo_classes[int(clss_num.item())], font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (0, 0, 255, 255))
+                draw.multiline_text((box_coords[0], box_coords[1]+20), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
                 source_img = pil_im.alpha_composite(source_img, overlay)
                 source_img = source_img.convert("RGB") # Remove alpha for saving in jpg format.
 
@@ -543,8 +543,8 @@ class AffordanceAnalyzer:
                 draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
                 print_string =  w_tot_results
                 print_string = '\n'.join(print_string)
-                draw.text((box_coords[0], box_coords[1]), 'YOLOv5 est is:'+ crop['label'], font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 0, 0, 255))
-                draw.multiline_text((box_coords[0], box_coords[1]+10), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
+                draw.text((box_coords[0], box_coords[1]), 'YOLOv5 est is:'+ crop['label'], font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (0, 0, 255, 255))
+                draw.multiline_text((box_coords[0], box_coords[1]+20), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
                 source_img = pil_im.alpha_composite(source_img, overlay)
                 source_img = source_img.convert("RGB") # Remove alpha for saving in jpg format.
 
