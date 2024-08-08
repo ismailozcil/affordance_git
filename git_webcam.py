@@ -483,7 +483,7 @@ class AffordanceAnalyzer:
                 overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
                 draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
                 draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
-                print_string = [self.segmentator.yolo_classes[int(clss_num.item())]] + w_tot_results
+                print_string = ['YOLOv8 est is:' + self.segmentator.yolo_classes[int(clss_num.item())]] + w_tot_results
                 print_string = '\n'.join(print_string)
                 draw.multiline_text((box_coords[0], box_coords[1]), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
                 source_img = pil_im.alpha_composite(source_img, overlay)
@@ -540,7 +540,7 @@ class AffordanceAnalyzer:
                 overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
                 draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
                 draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
-                print_string = [crop['label']] + w_tot_results
+                print_string = ['YOLOv5 est is:'+ crop['label']] + w_tot_results
                 print_string = '\n'.join(print_string)
                 draw.multiline_text((box_coords[0], box_coords[1]), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
                 source_img = pil_im.alpha_composite(source_img, overlay)
