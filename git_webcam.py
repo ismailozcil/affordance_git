@@ -49,11 +49,14 @@ class FeatureExtractorNet:
         self.model = self.get_model()
 
     def get_model(self):
+        print(self.model_name)
         if self.model_name == 'resnet18':
             model_conv = models.resnet18(pretrained=True)
+            print('resnet18 selected')
+        if self.model_name == 'regnet_y':
+            model_conv = models.regnet_y_16gf(pretrained = True)
         # Add more models as needed, e.g., elif self.model_name == 'resnet50': ...
-        else:
-            raise ValueError("Invalid model name.")
+
 
         for param in model_conv.parameters():
             param.requires_grad = False
@@ -361,7 +364,7 @@ class AffordanceAnalyzer:
 
             mean_val = torch.mean(afford_states,1)
             non_mean_val = torch.mean(non_afford_states, 1).to(self.device)
-            self.base_point_vecs[i] = mean_val.to(self.device)
+            self.base_point_vecs[i] = mean_val.unsqueeze(1).to(self.device)
             [dim1, dim2] = afford_states.shape
             base_tens = mean_val.resize(dim1, 1).expand(dim1, dim2).to(self.device)
             origin_zero_matr = (afford_states-base_tens).to(self.device)
@@ -397,7 +400,8 @@ class AffordanceAnalyzer:
         return 0
 
     def load_models(self):
-        self.featureExtractor = FeatureExtractorNet()
+        print(self.model_name)
+        self.featureExtractor = FeatureExtractorNet(model_name=self.model_name)
         self.objectDetector = ObjectDetectorYOLO()
         self.segmentator = ObjectSegmentorYOLO()
 
@@ -415,6 +419,19 @@ class AffordanceAnalyzer:
         range_tens = torch.range(0, len(self.afford_labellist)-1.0)/(len(self.afford_labellist)-1.0)
         out_optim = torch.square(range_tens-torch.ones_like(range_tens)) + torch.square(outp)
         optim_sorted, optim_ind_sorted = torch.sort(out_optim)
+        if self.plot_graph:
+            plt.figure()
+            #plt.plot(range_tens.tolist(), outp.tolist(), linewidth=3.0)
+            for k in range(optim_ind_sorted.shape[0]):
+                #print('at position:',range_tens[k].item(), optim_sorted[k].item(), 'affordance ', self.afford_dict[self.afford_labellist[optim_ind_sorted[k]]])
+                if k ==optim_ind_sorted[0]:
+                    plt.text(range_tens[k].item()+0.02, outp[k].item(), self.afford_dict[self.afford_labellist[outi[k]]], color='red', rotation = 60)
+                    plt.scatter(range_tens[k].item(), outp[k].item(), color='red', zorder =1000, s = 60)
+                else:
+                    plt.text(range_tens[k].item()+0.02, outp[k].item(), self.afford_dict[self.afford_labellist[outi[k]]], color='blue', rotation = 60)
+                    plt.scatter(range_tens[k].item(), outp[k].item(), color='blue', zorder =1000, s = 60)
+            plt.show()
+        
         w_results = torch.nonzero(output_w >= outp[optim_ind_sorted[0]]).squeeze()
         mults = (output_w >= 1.2*outp[optim_ind_sorted[0]]).squeeze()*output_w.squeeze()
         mults[mults == 0] = -10e10
@@ -461,6 +478,7 @@ class AffordanceAnalyzer:
                 cropped = pil_fa.crop((x0, y0, x1, y1))
                 crop_t = self.featureExtractor.extract_features(cropped)
                 v1 = crop_t.squeeze(3).squeeze(0).to(self.device)
+                print((v1-self.base_point_vecs[1]).shape)
 
                 prjctns = torch.tensor([(torch.norm(torch.matmul(self.base_list[x], v1-self.base_point_vecs[x]))/torch.norm(v1-self.base_point_vecs[x])).item()-0.85*self.threshold_dict[x] for x in self.afford_labellist])
                 prjctns = torch.abs(prjctns)
