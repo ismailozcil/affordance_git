@@ -453,13 +453,35 @@ class AffordanceAnalyzer:
 
         masks_seg = result_seg.masks.data
         boxes_seg = result_seg.boxes.data
+        print('boxes seg', boxes_seg)
         clss_seg = boxes_seg[:, 5]
+        print('clss seg', clss_seg)
         print('Segmented results are (YOLOv8):')
+        crop_list = list()
+        crop_labels = list()
+        crop_centers = list()
         for itr in range(len(clss_seg.tolist())):
             clss_num = clss_seg[itr]
             if self.segmentator.yolo_classes[int(clss_num.item())] == 'person':
                 pass
             else:
+                cls_masks = masks_seg[itr]
+                cls_mask = (cls_masks).unsqueeze(0)
+                cls_mask = (transforms.Resize(size = (765, 1360))(torch.cat((cls_mask, cls_mask, cls_mask),0)) >0.5).int()
+                cls_mask = cls_mask.permute(1,2,0)
+                orig_im = torch.tensor(result_seg.orig_img)
+                orig_im = orig_im[:,:,[2,1,0]]
+                zeros_im = torch.zeros_like(orig_im)
+                masked_img = torch.where(cls_mask == 1, orig_im, zeros_im)
+                x0, y0, x1, y1 = boxes_seg[itr, :4].int()
+                width = masked_img.shape[0]
+                height = masked_img.shape[1]
+                x0 = int(x0*0.9)
+                y0 = int(y0*0.9)
+                x1 = min(int(x1*1.1), height)
+                y1 = min(int(y1*1.1), width)
+                cropped_m = masked_img[y0:y1, x0:x1, :]
+                """
                 cls_indices = torch.where(clss_seg == clss_num)
                 cls_masks = masks_seg[cls_indices]
                 # scale for visualizing results
@@ -476,6 +498,8 @@ class AffordanceAnalyzer:
                 x1 = min(int(x1*1.1), width)
                 y1 = min(int(y1*1.1), height)
                 cropped = pil_fa.crop((x0, y0, x1, y1))
+                """
+                cropped = pil_im.fromarray(cropped_m.numpy())
                 crop_t = self.featureExtractor.extract_features(cropped)
                 v1 = crop_t.squeeze(3).squeeze(0).to(self.device)
                 print((v1-self.base_point_vecs[1]).shape)
@@ -483,7 +507,7 @@ class AffordanceAnalyzer:
                 prjctns = torch.tensor([(torch.norm(torch.matmul(self.base_list[x], v1-self.base_point_vecs[x]))/torch.norm(v1-self.base_point_vecs[x])).item()-0.85*self.threshold_dict[x] for x in self.afford_labellist])
                 prjctns = torch.abs(prjctns)
                 prj_dict = self.get_opt_result(prjctns, 0.5)
-                
+
                 ang_la1 = [self.curv_calc(self.state_dict[k], v1, 3,20).item() for k in self.afford_labellist]
                 la1_dict = self.get_opt_result(1/torch.tensor(ang_la1), 1.7)
 
@@ -495,24 +519,24 @@ class AffordanceAnalyzer:
                 if len(w_tot_results) == 0:
                     w_tot_results = ['found none']
                 box_coords = boxes_seg[itr, :4].squeeze().tolist()
-                cv2_img = cv2.imread( imagename)
-                cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
-                source_img = pil_im.fromarray(cv2_img).convert("RGBA")
-                overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
-                draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
-                draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
-                print_string =  w_tot_results
-                print_string = '\n'.join(print_string)
-                draw.text((box_coords[0], box_coords[1]), 'YOLOv8 est is:' + self.segmentator.yolo_classes[int(clss_num.item())], font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (0, 0, 255, 255))
-                draw.multiline_text((box_coords[0], box_coords[1]+20), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
-                source_img = pil_im.alpha_composite(source_img, overlay)
-                source_img = source_img.convert("RGB") # Remove alpha for saving in jpg format.
+            cv2_img = cv2.imread( imagename)
+            cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
+            source_img = pil_im.fromarray(cv2_img).convert("RGBA")
+            overlay = pil_im.new('RGBA', source_img.size, TINT_COLOR+(0,))
+            draw = ImageDraw.Draw(overlay)  # Create a context for drawing things on it.
+            draw.rectangle(((x0, y0), (x1, y1)), outline =(255, 0, 0), width = 5, fill=TINT_COLOR+(OPACITY,))
+            print_string =  w_tot_results
+            print_string = '\n'.join(print_string)
+            draw.text((box_coords[0], box_coords[1]), 'YOLOv8 est is:' + self.segmentator.yolo_classes[int(clss_num.item())], font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (0, 0, 255, 255))
+            draw.multiline_text((box_coords[0], box_coords[1]+20), print_string, font =ImageFont.truetype('LiberationMono-Bold.ttf',25),fill = (255, 255, 0, 255))
+            source_img = pil_im.alpha_composite(source_img, overlay)
+            source_img = source_img.convert("RGB") # Remove alpha for saving in jpg format.
 
-                plt.imshow(cropped)
-                plt.show()
+            plt.imshow(cropped)
+            plt.show()
 
-                plt.imshow(source_img)
-                plt.show()
+            plt.imshow(source_img)
+            plt.show()
 
 
         crops = self.objectDetector.detect_objects(pil_img)
@@ -539,7 +563,7 @@ class AffordanceAnalyzer:
                 prjctns = torch.tensor([(torch.norm(torch.matmul(self.base_list[x], v1-self.base_point_vecs[x]))/torch.norm(v1-self.base_point_vecs[x])).item()-0.85*self.threshold_dict[x] for x in self.afford_labellist])
                 prjctns = torch.abs(prjctns)
                 prj_dict = self.get_opt_result(prjctns, 0.5)
-                
+
 
                 ang_la1 = [self.curv_calc(self.state_dict[k], v1, 3,20).item() for k in self.afford_labellist]
                 la1_dict = self.get_opt_result(1/torch.tensor(ang_la1), 1.7)
